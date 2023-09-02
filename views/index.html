@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<body>
+    <h1>{{.Title}}</h1>
+    <div>
+        <input type="text" id="messageInput" placeholder="Enter a message">
+        <ul id="sugg"></ul>
+    </div>
+    <div id="messageArea"></div>
+    <script>
+        let clientId = null
+        // DOM elements
+        const messageInput = document.getElementById("messageInput");
+        const messageArea = document.getElementById("messageArea");
+        const suggArea = document.getElementById("sugg")
+
+        const socket = new WebSocket("ws://127.0.0.1:3000/ws");
+
+        messageInput.addEventListener('input', (e) => {
+            socket.send(JSON.stringify({
+                "method": "trie",
+                "clientId": clientId,
+                "value": e.target.value
+            }))
+        });
+
+        // WebSocket onopen event
+        socket.onopen = () => {
+            messageArea.innerHTML += "<p>WebSocket connection established.</p>";
+        };
+
+        // WebSocket onmessage event
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data)
+            switch (data.method) {
+                case "connect": {
+                    clientId = data.clientId
+                    break;
+                }
+                default: {
+                    console.log(data.ans);
+                    while (suggArea.firstChild)
+                        suggArea.removeChild(suggArea.firstChild)
+
+                    if (!data.ans) return
+
+                    data.ans.forEach(element => {
+                        const l = document.createElement("li")
+                        l.innerText = element
+                        suggArea.appendChild(l)
+                    });
+                    break
+                }
+            }
+        };
+
+        // WebSocket onclose event
+        socket.onclose = () => {
+            messageArea.innerHTML = "<p>WebSocket connection closed.</p>";
+        };
+    </script>
+</body>
+
+</html>
